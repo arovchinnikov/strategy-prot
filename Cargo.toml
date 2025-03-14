@@ -1,10 +1,12 @@
 [package]
 name = "bevy_game"
-version = "0.1.0"
-edition = "2021"
+version = "0.0.1"
+edition = "2024"
 
 [dependencies]
 bevy = "0.15.3"
+bevy-inspector-egui = "0.29.1"
+bevy_framepace = "0.18.1"
 
 [profile.dev]
 opt-level = 1
@@ -13,4 +15,6 @@ opt-level = 1
 opt-level = 3
 
 [profile.release]
+codegen-units = 1
 opt-level = 3
+lto = "thin"

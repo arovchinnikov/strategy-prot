@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     App::new()
@@ -10,5 +12,12 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(WorldInspectorPlugin::new())
+        .add_plugins(FramepacePlugin)
+        .add_systems(Startup, setup_frame_limit)
         .run();
+}
+
+fn setup_frame_limit(mut settings: ResMut<FramepaceSettings>) {
+    settings.limiter = Limiter::from_framerate(60.0);
 }
