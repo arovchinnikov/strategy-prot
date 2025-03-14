@@ -1,3 +1,5 @@
+mod scene;
+
 use bevy::prelude::*;
 use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -14,6 +16,7 @@ fn main() {
         }))
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(FramepacePlugin)
+        .call(scene::build)
         .add_systems(Startup, setup_frame_limit)
         .run();
 }
