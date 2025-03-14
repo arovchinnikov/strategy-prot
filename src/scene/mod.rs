@@ -7,7 +7,7 @@ mod game;
 mod states;
 
 pub fn build(app: &mut App) {
-    app.add_state::<GameState>();
+    app.init_state::<GameState>();
 
     loading::build(app);
     main_menu::build(app);
