@@ -31,11 +31,6 @@ pub fn spawn_terrain_chunks(
     let mut chunk_num_id = 0;
 
     commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(1100.0, 120.0, 720.0),
-    ));
-
-    commands.spawn((
         DirectionalLight {
             color: WHITE.into(),
             illuminance: 4500.,
