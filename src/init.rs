@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_framepace::FramepacePlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use crate::scene;
+use crate::{scene, world};
 
 pub fn init(app: &mut App) {
     add_bevy_plugins(app);
@@ -12,6 +12,7 @@ pub fn init(app: &mut App) {
 
 fn build_modules(app: &mut App) {
     scene::build(app);
+    world::build(app);
 }
 
 fn add_bevy_plugins(app: &mut App) {
