@@ -66,7 +66,6 @@ pub fn spawn_terrain_chunks(
                     scale: Vec3::new(1.0, 1.0, 1.0),
                     ..default()
                 },
-                Wireframe,
                 RenderLayers::from_layers(&[0, 1])
             )).id();
 
