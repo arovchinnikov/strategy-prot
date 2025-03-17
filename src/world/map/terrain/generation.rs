@@ -99,6 +99,8 @@ pub fn generate_terrain_mesh(
     if indices.is_empty() {
         return None;
     }
+    // Применяем subdivision-подобное сглаживание к граничным вершинам
+    smooth_border_with_subdivision(&mut vertices, &heights, points_width, points_height);
 
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
@@ -110,4 +112,171 @@ pub fn generate_terrain_mesh(
     mesh.compute_smooth_normals();
 
     Some(mesh)
+}
+
+// Функция сглаживания с эффектом subdivision для граничных вершин
+fn smooth_border_with_subdivision(
+    vertices: &mut Vec<[f32; 3]>,
+    heights: &Vec<Vec<f32>>,
+    points_width: u32,
+    points_height: u32
+) {
+    // Шаг 1: Определяем граничные вершины
+    let mut is_border = vec![false; vertices.len()];
+
+    for z in 1..points_height - 1 {
+        for x in 1..points_width - 1 {
+            let idx = (z * points_width + x) as usize;
+            let current_height = heights[z as usize][x as usize];
+
+            if current_height == 0.0 {
+                continue;
+            }
+
+            // Проверяем 8 соседей
+            let neighbors = [
+                (x-1, z-1), (x, z-1), (x+1, z-1),
+                (x-1, z),               (x+1, z),
+                (x-1, z+1), (x, z+1), (x+1, z+1)
+            ];
+
+            for &(nx, nz) in &neighbors {
+                if nx < points_width && nz < points_height {
+                    let neighbor_height = heights[nz as usize][nx as usize];
+
+                    if neighbor_height == 0.0 {
+                        is_border[idx] = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Шаг 2: Применяем итеративное сглаживание в стиле Subdivision
+    const ITERATIONS: usize = 7;  // Количество итераций subdivision
+    const SMOOTHING_FACTOR: f32 = 0.2;  // Фактор сглаживания
+
+    for _ in 0..ITERATIONS {
+        let current_vertices = vertices.clone();
+
+        for z in 1..points_height - 1 {
+            for x in 1..points_width - 1 {
+                let idx = (z * points_width + x) as usize;
+
+                // Обрабатываем только граничные вершины с ненулевой высотой
+                if !is_border[idx] || heights[z as usize][x as usize] == 0.0 {
+                    continue;
+                }
+
+                // Ищем соседние граничные вершины
+                let mut valid_neighbors = Vec::new();
+
+                // Проверяем соседей по 4 основным направлениям для более прямых связей
+                let direct_neighbors = [
+                    (x, z-1), (x+1, z), (x, z+1), (x-1, z)
+                ];
+
+                for &(nx, nz) in &direct_neighbors {
+                    if nx < points_width && nz < points_height {
+                        let n_idx = (nz * points_width + nx) as usize;
+                        let n_height = heights[nz as usize][nx as usize];
+
+                        if n_height > 0.0 && is_border[n_idx] {
+                            valid_neighbors.push(n_idx);
+                        }
+                    }
+                }
+
+                // Если найдено менее 2 соседей, проверяем также диагональные соседи
+                if valid_neighbors.len() < 2 {
+                    let diagonal_neighbors = [
+                        (x-1, z-1), (x+1, z-1),
+                        (x-1, z+1), (x+1, z+1)
+                    ];
+
+                    for &(nx, nz) in &diagonal_neighbors {
+                        if nx < points_width && nz < points_height {
+                            let n_idx = (nz * points_width + nx) as usize;
+                            let n_height = heights[nz as usize][nx as usize];
+
+                            if n_height > 0.0 && is_border[n_idx] {
+                                valid_neighbors.push(n_idx);
+                            }
+                        }
+                    }
+                }
+
+                // Применяем subdivision-подобное правило сглаживания
+                if valid_neighbors.len() >= 2 {
+                    let mut new_x = 0.0;
+                    let mut new_z = 0.0;
+
+                    // Вычисляем новую позицию как среднее соседних вершин + начальная вершина
+                    for &n_idx in &valid_neighbors {
+                        new_x += current_vertices[n_idx][0];
+                        new_z += current_vertices[n_idx][2];
+                    }
+
+                    new_x = new_x / valid_neighbors.len() as f32;
+                    new_z = new_z / valid_neighbors.len() as f32;
+
+                    // Интерполируем с учетом коэффициента сглаживания
+                    vertices[idx][0] = current_vertices[idx][0] * (1.0 - SMOOTHING_FACTOR) + new_x * SMOOTHING_FACTOR;
+                    vertices[idx][2] = current_vertices[idx][2] * (1.0 - SMOOTHING_FACTOR) + new_z * SMOOTHING_FACTOR;
+                    // Высота (Y) остается неизменной
+                }
+            }
+        }
+    }
+
+    // Шаг 3: Финальный проход для более плавного перехода между соседними вершинами
+    let final_vertices = vertices.clone();
+
+    for z in 1..points_height - 1 {
+        for x in 1..points_width - 1 {
+            let idx = (z * points_width + x) as usize;
+
+            if !is_border[idx] || heights[z as usize][x as usize] == 0.0 {
+                continue;
+            }
+
+            // Используем Catmull-Clark-подобную схему для финального сглаживания
+            let mut count = 0;
+            let mut sum_x = 0.0;
+            let mut sum_z = 0.0;
+
+            // Проверяем в радиусе 2 для лучшего эффекта сглаживания
+            for dz in -2..=2 {
+                for dx in -2..=2 {
+                    if dx == 0 && dz == 0 {
+                        continue;
+                    }
+
+                    let nx = x as i32 + dx;
+                    let nz = z as i32 + dz;
+
+                    if nx >= 0 && nx < points_width as i32 && nz >= 0 && nz < points_height as i32 {
+                        let n_idx = (nz as u32 * points_width + nx as u32) as usize;
+
+                        if is_border[n_idx] && heights[nz as usize][nx as usize] > 0.0 {
+                            sum_x += final_vertices[n_idx][0];
+                            sum_z += final_vertices[n_idx][2];
+                            count += 1;
+                        }
+                    }
+                }
+            }
+
+            if count > 0 {
+                // Интерполируем с меньшим коэффициентом для финального прохода
+                const FINAL_FACTOR: f32 = 0.3;
+                let avg_x = sum_x / count as f32;
+                let avg_z = sum_z / count as f32;
+
+                vertices[idx][0] = final_vertices[idx][0] * (1.0 - FINAL_FACTOR) + avg_x * FINAL_FACTOR;
+                vertices[idx][2] = final_vertices[idx][2] * (1.0 - FINAL_FACTOR) + avg_z * FINAL_FACTOR;
+            }
+        }
+    }
 }
