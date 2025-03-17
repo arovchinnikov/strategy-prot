@@ -53,7 +53,7 @@ pub fn spawn_terrain_chunks(
                 ..default()
             });
 
-            let mesh = generate_terrain_mesh(start_x, start_z, &heightmap, 1);
+            let mesh = generate_terrain_mesh(start_x, start_z, &heightmap, 1, 2);
             if mesh.is_none() {
                 continue;
             }
