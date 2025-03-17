@@ -10,7 +10,6 @@ pub fn generate_terrain_mesh(
     overlap: u32, // Добавляем параметр перекрытия для сшивания чанков
 ) -> Option<Mesh> {
     let size = 128;
-    let threshold_height = 10.0;
     let max_height = 100.0;
 
     // Проверяем, достаточно ли большая карта высот, учитывая перекрытие
@@ -40,7 +39,7 @@ pub fn generate_terrain_mesh(
             let height = (height_value as f32 / 255.0) * max_height;
 
             // Создаем вершины только для точек выше порога
-            if height > threshold_height {
+            if height > 0.0 {
                 has_valid_height = true;
 
                 // Добавляем вершину в списки

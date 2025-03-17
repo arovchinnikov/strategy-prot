@@ -30,6 +30,7 @@ pub fn build(app: &mut bevy::prelude::App) {
     app.add_systems(Startup, spawn_camera);
     app.add_systems(Update, camera_drag_movement);
     app.add_systems(FixedUpdate, zoom_handler);
+    app.add_systems(FixedUpdate, camera_movement);
     app.init_resource::<CameraDragState>();
 }
 
@@ -157,4 +158,33 @@ fn height_to_tilt(height: f32) -> f32 {
 
 fn lerp(start: f32, end: f32, t: f32) -> f32 {
     start + (end - start) * t
+}
+
+fn camera_movement(
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(&CameraController, &mut Transform)>,
+) {
+    for (controller, mut transform) in query.iter_mut() {
+        let mut direction = Vec3::ZERO;
+
+        if keyboard_input.pressed(KeyCode::KeyW) {
+            direction.z -= 1.0;
+        }
+        if keyboard_input.pressed(KeyCode::KeyS) {
+            direction.z += 1.0;
+        }
+        if keyboard_input.pressed(KeyCode::KeyA) {
+            direction.x -= 1.0;
+        }
+        if keyboard_input.pressed(KeyCode::KeyD) {
+            direction.x += 1.0;
+        }
+
+        if direction != Vec3::ZERO {
+            direction = direction.normalize();
+            let new_position = transform.translation + direction * 440.0 * time.delta_secs();
+            transform.translation = clamp_camera_position(new_position);
+        }
+    }
 }
