@@ -1,3 +1,5 @@
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
+use bevy::pbr::wireframe::WireframePlugin;
 use bevy::prelude::*;
 use bevy_framepace::FramepacePlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -33,6 +35,8 @@ fn add_bevy_plugins(app: &mut App) {
     );
 
     app.add_plugins(plugins);
+    app.add_plugins(FrameTimeDiagnosticsPlugin);
+    app.add_plugins(WireframePlugin);
 }
 
 fn add_lib_plugins(app: &mut App) {

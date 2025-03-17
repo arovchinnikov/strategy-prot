@@ -3,6 +3,7 @@ mod generation;
 use std::f32::consts::PI;
 use std::path::Path;
 use bevy::color::palettes::basic::WHITE;
+use bevy::pbr::wireframe::Wireframe;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use image::{GrayImage, ImageReader};
@@ -65,6 +66,7 @@ pub fn spawn_terrain_chunks(
                     scale: Vec3::new(1.0, 1.0, 1.0),
                     ..default()
                 },
+                Wireframe,
                 RenderLayers::from_layers(&[0, 1])
             )).id();
 

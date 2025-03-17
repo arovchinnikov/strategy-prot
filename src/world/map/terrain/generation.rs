@@ -22,92 +22,84 @@ pub fn generate_terrain_mesh(
     let mut uvs: Vec<[f32; 2]> = Vec::new();
     let mut indices: Vec<u32> = Vec::new();
 
-    let mut has_valid_height = false;
+    // Проходим по всем точкам в пределах чанка, включая перекрытие
+    let points_width = size + overlap + 1;
+    let points_height = size + overlap + 1;
+    let mut has_non_zero_height = false;
 
-    // Создаем двумерный массив для хранения индексов вершин, или None если вершины нет
-    let mut vertex_indices = vec![vec![None::<u32>; (size + overlap) as usize]; (size + overlap) as usize];
+    // Сначала собираем все высоты
+    let mut heights = vec![vec![0.0; points_width as usize]; points_height as usize];
 
-    // Генерируем сетку вершин с учетом перекрытия
-    for z in 0..size + overlap {
-        for x in 0..size + overlap {
-            let pixel_x = start_x + x;
-            let pixel_z = start_z + z;
+    for z in 0..points_height {
+        for x in 0..points_width {
+            let heightmap_x = start_x + x;
+            let heightmap_z = start_z + z;
 
-            // Получаем значение высоты из карты высот
-            let height_value = heightmap.get_pixel(pixel_x, pixel_z).0[0];
-            // Нормализуем высоту
-            let height = (height_value as f32 / 255.0) * max_height;
+            // Получаем высоту из карты высот
+            let pixel = heightmap.get_pixel(heightmap_x, heightmap_z);
+            let height = if pixel[0] > 0 {
+                let h = (pixel[0] as f32 / 255.0) * max_height;
+                if h > 0.0 {
+                    has_non_zero_height = true;
+                }
+                h
+            } else {
+                0.0 // Если пиксель черный, высота равна 0
+            };
 
-            // Создаем вершины только для точек выше порога
-            if height > 0.0 {
-                has_valid_height = true;
-
-                // Добавляем вершину в списки
-                vertices.push([x as f32, height / 2.0, z as f32]);
-
-                // Временная нормаль (будет пересчитана позже)
-                normals.push([0.0, 1.0, 0.0]);
-
-                // UV-координаты
-                uvs.push([x as f32 / size as f32, z as f32 / size as f32]);
-
-                // Сохраняем индекс вершины в нашем массиве
-                vertex_indices[z as usize][x as usize] = Some((vertices.len() - 1) as u32);
-            }
+            heights[z as usize][x as usize] = height;
         }
     }
 
-    // Если нет точек выше порога, возвращаем None
-    if !has_valid_height {
+    // Если во всем чанке нет точек с ненулевой высотой, возвращаем None
+    if !has_non_zero_height {
         return None;
     }
 
-    // Генерируем треугольники
-    for z in 0..size + overlap - 1 {
-        for x in 0..size + overlap - 1 {
-            // Проверяем наличие вершин в углах квадрата
-            let top_left = vertex_indices[z as usize][x as usize];
-            let top_right = vertex_indices[z as usize][(x + 1) as usize];
-            let bottom_left = vertex_indices[(z + 1) as usize][x as usize];
-            let bottom_right = vertex_indices[(z + 1) as usize][(x + 1) as usize];
-
-            // Генерируем треугольники для каждого квадрата, где есть достаточно вершин
-            match (top_left, top_right, bottom_left, bottom_right) {
-                (Some(tl), Some(tr), Some(bl), Some(br)) => {
-                    // Два треугольника с правильной ориентацией (по часовой стрелке)
-                    indices.extend_from_slice(&[tl, bl, tr]); // Первый треугольник
-                    indices.extend_from_slice(&[tr, bl, br]); // Второй треугольник
-                },
-                (Some(tl), Some(tr), Some(bl), None) => {
-                    // Один треугольник
-                    indices.extend_from_slice(&[tl, bl, tr]);
-                },
-                (Some(tl), Some(tr), None, Some(br)) => {
-                    // Один треугольник
-                    indices.extend_from_slice(&[tl, tr, br]);
-                },
-                (Some(tl), None, Some(bl), Some(br)) => {
-                    // Один треугольник
-                    indices.extend_from_slice(&[tl, bl, br]);
-                },
-                (None, Some(tr), Some(bl), Some(br)) => {
-                    // Один треугольник
-                    indices.extend_from_slice(&[tr, bl, br]);
-                },
-                _ => {
-                    // Недостаточно вершин для треугольника
-                    continue;
-                }
-            }
+    // Создаем вершины и их атрибуты
+    for z in 0..points_height {
+        for x in 0..points_width {
+            let height = heights[z as usize][x as usize];
+            vertices.push([x as f32, height, z as f32]);
+            uvs.push([x as f32 / (size + overlap) as f32, z as f32 / (size + overlap) as f32]);
+            normals.push([0.0, 1.0, 0.0]); // Временные нормали
         }
     }
 
-    // Если не удалось создать ни одного треугольника, возвращаем None
+    // Создаем треугольники (индексы)
+    for z in 0..size + overlap {
+        for x in 0..size + overlap {
+            let top_left = z * points_width + x;
+            let top_right = top_left + 1;
+            let bottom_left = (z + 1) * points_width + x;
+            let bottom_right = bottom_left + 1;
+
+            let h_tl = heights[z as usize][x as usize];
+            let h_tr = heights[z as usize][(x + 1) as usize];
+            let h_bl = heights[(z + 1) as usize][x as usize];
+            let h_br = heights[(z + 1) as usize][(x + 1) as usize];
+
+            // Пропускаем квадрат, если хотя бы одна из его вершин имеет нулевую высоту
+            if h_tl == 0.0 || h_tr == 0.0 || h_bl == 0.0 || h_br == 0.0 {
+                continue;
+            }
+
+            // Первый треугольник (против часовой стрелки)
+            indices.push(top_left);
+            indices.push(bottom_left);
+            indices.push(top_right);
+
+            // Второй треугольник (против часовой стрелки)
+            indices.push(top_right);
+            indices.push(bottom_left);
+            indices.push(bottom_right);
+        }
+    }
+
     if indices.is_empty() {
         return None;
     }
 
-    // Создаем меш из наших данных
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
