@@ -43,7 +43,7 @@ pub fn generate_terrain_mesh(
                 has_valid_height = true;
 
                 // Добавляем вершину в списки
-                vertices.push([x as f32, height, z as f32]);
+                vertices.push([x as f32, height / 2.0, z as f32]);
 
                 // Временная нормаль (будет пересчитана позже)
                 normals.push([0.0, 1.0, 0.0]);
