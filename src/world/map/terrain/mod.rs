@@ -53,7 +53,7 @@ pub fn spawn_terrain_chunks(
                 ..default()
             });
 
-            let mesh = generate_terrain_mesh(start_x, start_z, &heightmap, 1);
+            let mesh = generate_terrain_mesh(start_x, start_z, &heightmap);
             if mesh.is_none() {
                 continue;
             }
@@ -66,7 +66,6 @@ pub fn spawn_terrain_chunks(
                     scale: Vec3::new(1.0, 1.0, 1.0),
                     ..default()
                 },
-                Wireframe,
                 RenderLayers::from_layers(&[0, 1])
             )).id();
 

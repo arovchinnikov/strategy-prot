@@ -6,14 +6,14 @@ use image::GrayImage;
 pub fn generate_terrain_mesh(
     start_x: u32,
     start_z: u32,
-    heightmap: &GrayImage,
-    overlap: u32, // Добавляем параметр перекрытия для сшивания чанков
+    heightmap: &GrayImage
 ) -> Option<Mesh> {
     let size = 128;
     let max_height = 100.0;
+    let overlap = 0;
 
     // Проверяем, достаточно ли большая карта высот, учитывая перекрытие
-    if start_x + size + overlap > heightmap.width() || start_z + size + overlap > heightmap.height() {
+    if start_x + size + overlap >= heightmap.width() || start_z + size + overlap >= heightmap.height() {
         return None;
     }
 
@@ -60,7 +60,7 @@ pub fn generate_terrain_mesh(
     for z in 0..points_height {
         for x in 0..points_width {
             let height = heights[z as usize][x as usize];
-            vertices.push([x as f32, height, z as f32]);
+            vertices.push([x as f32, height / 2.0, z as f32]);
             uvs.push([x as f32 / (size + overlap) as f32, z as f32 / (size + overlap) as f32]);
             normals.push([0.0, 1.0, 0.0]); // Временные нормали
         }
