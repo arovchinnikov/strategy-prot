@@ -66,12 +66,17 @@ pub fn spawn_terrain_chunks(
                     scale: Vec3::new(1.0, 1.0, 1.0),
                     ..default()
                 },
+                Wireframe,
                 RenderLayers::from_layers(&[0, 1])
             )).id();
 
             commands.entity(parent_entity).insert_children(chunk_num_id as usize, &[terrain_chunk]);
 
             chunk_num_id += 1;
+
+            if chunk_num_id >= 2 {
+                return
+            }
         }
     }
 }

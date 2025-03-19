@@ -8,6 +8,7 @@ bevy = "0.15.3"
 bevy-inspector-egui = "0.29.1"
 bevy_framepace = "0.18.1"
 image = "0.25.5"
+rand = "0.8.5"
 
 [profile.dev]
 opt-level = 1
