@@ -1,4 +1,5 @@
-mod generation;
+mod terrain_generator;
+mod border_generator;
 
 use std::f32::consts::PI;
 use std::path::Path;
@@ -7,7 +8,7 @@ use bevy::pbr::wireframe::Wireframe;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use image::{GrayImage, ImageReader};
-use crate::world::map::terrain::generation::generate_terrain_mesh;
+use crate::world::map::terrain::terrain_generator::generate_terrain_mesh;
 
 pub fn spawn_terrain_chunks(
     mut commands: Commands,
@@ -66,6 +67,7 @@ pub fn spawn_terrain_chunks(
                     scale: Vec3::new(1.0, 1.0, 1.0),
                     ..default()
                 },
+                Wireframe,
                 RenderLayers::from_layers(&[0, 1])
             )).id();
 

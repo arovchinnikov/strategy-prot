@@ -3,9 +3,10 @@ use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use image::GrayImage;
 use std::collections::HashMap;
+use crate::world::map::terrain::border_generator::make_borders;
 
-const VOID_HEIGHT: u8 = 0;
-const HEIGHT_SCALE: f32 = 0.3;
+pub const VOID_HEIGHT: u8 = 0;
+pub const HEIGHT_SCALE: f32 = 0.3;
 
 struct ChunkBounds {
     start_x: u32,
@@ -35,16 +36,19 @@ pub fn generate_terrain_mesh(
     }
 
     let (
-        positions,
-        normals,
-        uvs,
-        indices,
-        vertex_map
+        mut positions,
+        mut normals,
+        mut uvs,
+        mut indices,
+        mut vertex_map
     ) = generate_mesh_data(bounds, heightmap);
 
     if indices.is_empty() {
         return None;
     }
+
+    make_borders(start_x, start_z, chunk_size, heightmap, &mut positions, &mut normals, &mut uvs, &mut indices);
+
 
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
